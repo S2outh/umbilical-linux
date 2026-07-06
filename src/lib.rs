@@ -71,8 +71,8 @@ async fn can_receiver(nats_sender: Client, can_receiver: CanFdSocket) {
 
 pub async fn run(config: UMBConfig) {
 
-    let can_tx = CanFdSocket::open("vcan0").unwrap();
-    let can_rx = CanFdSocket::open("vcan0").unwrap();
+    let can_tx = CanFdSocket::open(&config.can_socket).unwrap();
+    let can_rx = CanFdSocket::open(&config.can_socket).unwrap();
 
     let nats_client = loop {
         match async_nats::ConnectOptions::with_user_and_password(config.nats_user.clone(), config.nats_pwd.clone())
@@ -104,6 +104,8 @@ pub struct UMBConfig {
     pub nats_address: String,
     pub nats_user: String,
     pub nats_pwd: String,
+    // -- CAN
+    pub can_socket: String,
 }
 impl UMBConfig {
     /// Creates a new configuration with default values
@@ -113,6 +115,7 @@ impl UMBConfig {
             nats_address: String::from("127.0.0.1"),
             nats_user: String::from("nats"),
             nats_pwd: String::from("nats"),
+            can_socket: String::from("can0"),
         }
     }
 }
