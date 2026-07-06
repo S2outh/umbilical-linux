@@ -1,0 +1,22 @@
+[package]
+name = "umbilical-linux"
+version = "0.1.0"
+edition = "2024"
+authors = [ "Eliseo Cailloux" ]
+
+[dependencies]
+
+async-nats = "0.46.0"
+tokio = { version = "1.50.0", features = [ "rt-multi-thread", "macros" ] }
+
+simple_config = { git = "https://github.com/Eleocraft/simple_config_rs.git" }
+
+south-common = { git = "https://github.com/S2outh/south-common.git", features = ["ground"] }
+
+erased-serde = { version = "0.4.10", default-features = false, features = ["alloc"] }
+serde = { version = "1.0.228", default-features = false, features = ["alloc"] }
+minicbor-serde = { version = "0.6.2", features = ["full"] }
+paste = "1.0.15"
+
+socketcan = { version = "3.6.2", features = ["tokio"] }
+tokio-stream = "0.1.18"
