@@ -4,7 +4,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_nats::{Client, Subscriber};
 use simple_config::Config;
-use socketcan::{CanAnyFrame, CanFdFrame, EmbeddedFrame, Frame, Id, frame::AsPtr, tokio::CanFdSocket};
+use socketcan::{CanFdFrame, EmbeddedFrame, Frame, tokio::CanFdSocket};
 
 use south_common::{chell::{_internal::InternalChellDefinition, ChellDefinition, ChellValue}, definitions::{internal_msgs, telemetry}, types::Telecommand};
 use tokio::time;
@@ -26,6 +26,7 @@ async fn can_sender(mut nats_subscription: Subscriber, can_sender: CanFdSocket) 
         let nats_msg = nats_subscription.next().await.unwrap();
         match minicbor_serde::from_slice::<Telecommand>(&nats_msg.payload) {
             Ok(cmd) => {
+                println!("received command");
                 let mut buf = [0u8; internal_msgs::Telecommand::MAX_BYTE_SIZE];
                 let len = cmd.write(&mut buf).unwrap();
                 let frame = CanFdFrame::from_raw_id(internal_msgs::Telecommand.id() as u32, &buf[..len]).unwrap();
@@ -41,21 +42,15 @@ async fn can_sender(mut nats_subscription: Subscriber, can_sender: CanFdSocket) 
 async fn can_receiver(nats_sender: Client, can_receiver: CanFdSocket) {
     loop {
         let frame = can_receiver.read_frame().await.unwrap();
-        let CanAnyFrame::Fd(frame) = frame else {
-            continue;
-        };
-        let Id::Standard(id) = frame.id() else {
-            continue;
-        };
 
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        if let Ok(def) = telemetry::from_id(id.as_raw()) {
+        if let Ok(def) = telemetry::from_id(frame.raw_id() as u16) {
             if let Ok(values) = def.reserialize(
-                &frame.as_bytes(),
+                &frame.data(),
                 &timestamp,
                 &cbor_serializer,
             ) {
