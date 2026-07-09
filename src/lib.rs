@@ -42,8 +42,9 @@ async fn telecommand_task(nats_client: Arc<Client>, can_sender: CanFdSocket) {
                     TelecommandChellUnion::new(&internal_msgs::Telecommand, &cmd).unwrap();
                 let id = Id::Standard(StandardId::new(container.id()).unwrap());
                 let frame = CanFdFrame::new(id, container.fd_bytes()).unwrap();
-                if let Err(e) = can_sender.write_frame(&frame).await {
-                    eprintln!("could not send (can): {}", &e);
+                while let Err(e) = can_sender.write_frame(&frame).await {
+                    eprintln!("could not send (can): {}, retrying", &e);
+                    time::sleep(Duration::from_millis(100)).await;
                 }
             }
             Err(e) => eprintln!("could not decode cmd: {}", &e),
@@ -56,8 +57,8 @@ async fn telemetry_task(nats_sender: Arc<Client>, can_receiver: CanFdSocket) {
         let frame = match can_receiver.read_frame().await {
             Ok(frame) => frame,
             Err(e) => {
-                eprintln!("could not read (can): {}, retrying in 1s", &e);
-                time::sleep(Duration::from_secs(1)).await;
+                eprintln!("could not read (can): {}, retrying", &e);
+                time::sleep(Duration::from_millis(100)).await;
                 continue;
             }
         };
