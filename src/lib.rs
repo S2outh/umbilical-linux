@@ -53,8 +53,6 @@ async fn telecommand_task(nats_client: Arc<Client>, can_sender: CanFdSocket) {
 
 async fn telemetry_task(nats_sender: Arc<Client>, can_receiver: CanFdSocket) {
     loop {
-        // reads fail with ENETDOWN while the interface is down; the socket
-        // stays valid and resumes once the interface is back up
         let frame = match can_receiver.read_frame().await {
             Ok(frame) => frame,
             Err(e) => {
@@ -97,22 +95,19 @@ async fn open_can_socket(name: &str) -> CanFdSocket {
     }
 }
 
-pub async fn run(config: UMBConfig) {
-    let can_tx = open_can_socket(&config.can_socket).await;
-    let can_rx = open_can_socket(&config.can_socket).await;
-
-    let nats_client = Arc::new(loop {
+async fn open_nats_con(address: &str, user: &str, pwd: &str) -> Client {
+    loop {
         match async_nats::ConnectOptions::with_user_and_password(
-            config.nats_user.clone(),
-            config.nats_pwd.clone(),
+            String::from(user),
+            String::from(pwd),
         )
-        .connect(config.nats_address.clone())
+        .connect(address)
         .await
         {
             Ok(client) => {
                 println!(
                     "[NATS] succesfully connected to NATS server on {} with user {}",
-                    config.nats_address, config.nats_user
+                    address, user
                 );
                 break client;
             }
@@ -122,7 +117,15 @@ pub async fn run(config: UMBConfig) {
             ),
         }
         time::sleep(Duration::from_secs(3)).await;
-    });
+    }
+}
+
+pub async fn run(config: UMBConfig) {
+    let can_tx = open_can_socket(&config.can_socket).await;
+    let can_rx = open_can_socket(&config.can_socket).await;
+
+    let nats_client =
+        Arc::new(open_nats_con(&config.nats_address, &config.nats_user, &config.nats_pwd).await);
 
     tokio::spawn(telecommand_task(nats_client.clone(), can_tx));
     tokio::spawn(telemetry_task(nats_client, can_rx));
