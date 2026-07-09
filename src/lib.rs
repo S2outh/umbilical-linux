@@ -53,7 +53,16 @@ async fn telecommand_task(nats_client: Arc<Client>, can_sender: CanFdSocket) {
 
 async fn telemetry_task(nats_sender: Arc<Client>, can_receiver: CanFdSocket) {
     loop {
-        let frame = can_receiver.read_frame().await.unwrap();
+        // reads fail with ENETDOWN while the interface is down; the socket
+        // stays valid and resumes once the interface is back up
+        let frame = match can_receiver.read_frame().await {
+            Ok(frame) => frame,
+            Err(e) => {
+                eprintln!("could not read (can): {}, retrying in 1s", &e);
+                time::sleep(Duration::from_secs(1)).await;
+                continue;
+            }
+        };
 
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -75,9 +84,22 @@ async fn telemetry_task(nats_sender: Arc<Client>, can_receiver: CanFdSocket) {
     }
 }
 
+async fn open_can_socket(name: &str) -> CanFdSocket {
+    loop {
+        match CanFdSocket::open(name) {
+            Ok(socket) => break socket,
+            Err(e) => eprintln!(
+                "[ERROR] Could not open CAN socket {}: {}, retrying in 3s",
+                name, &e
+            ),
+        }
+        time::sleep(Duration::from_secs(3)).await;
+    }
+}
+
 pub async fn run(config: UMBConfig) {
-    let can_tx = CanFdSocket::open(&config.can_socket).unwrap();
-    let can_rx = CanFdSocket::open(&config.can_socket).unwrap();
+    let can_tx = open_can_socket(&config.can_socket).await;
+    let can_rx = open_can_socket(&config.can_socket).await;
 
     let nats_client = Arc::new(loop {
         match async_nats::ConnectOptions::with_user_and_password(
