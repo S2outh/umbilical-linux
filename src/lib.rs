@@ -11,11 +11,13 @@ use socketcan::{CanFdFrame, EmbeddedFrame, Frame, Id, StandardId, tokio::CanFdSo
 
 use south_common::{
     chell::ChellDefinition,
-    definitions::{internal_msgs, telemetry},
+    definitions::{command_msgs, telemetry},
     types::Telecommand,
 };
 use tokio::time;
 use tokio_stream::StreamExt;
+
+const CAN_ID: u16 = 0;
 
 fn cbor_serializer(value: &dyn erased_serde::Serialize) -> Result<Vec<u8>, erased_serde::Error> {
     let mut buffer = Vec::new();
@@ -25,11 +27,11 @@ fn cbor_serializer(value: &dyn erased_serde::Serialize) -> Result<Vec<u8>, erase
 }
 
 type TelecommandChellUnion =
-    south_common::chell::fd_compat_chell_union!(internal_msgs::Telecommand);
+    south_common::chell::fd_compat_chell_union!(command_msgs::Telecommand);
 
 async fn telecommand_task(nats_client: Arc<Client>, can_sender: CanFdSocket) {
     let mut nats_subscription = nats_client
-        .subscribe(internal_msgs::Telecommand.address())
+        .subscribe(command_msgs::Telecommand.address())
         .await
         .unwrap();
 
@@ -39,8 +41,8 @@ async fn telecommand_task(nats_client: Arc<Client>, can_sender: CanFdSocket) {
             Ok(cmd) => {
                 println!("received command");
                 let container =
-                    TelecommandChellUnion::new(&internal_msgs::Telecommand, &cmd).unwrap();
-                let id = Id::Standard(StandardId::new(container.id()).unwrap());
+                    TelecommandChellUnion::new(&command_msgs::Telecommand, &cmd).unwrap();
+                let id = Id::Standard(StandardId::new(container.id().get(CAN_ID).unwrap()).unwrap());
                 let frame = CanFdFrame::new(id, container.fd_bytes()).unwrap();
                 while let Err(e) = can_sender.write_frame(&frame).await {
                     eprintln!("could not send (can): {}, retrying", &e);
