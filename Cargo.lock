@@ -126,8 +126,8 @@ checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 
 [[package]]
 name = "chell"
-version = "7.0.1"
-source = "git+https://github.com/S2outh/chell-sys.git#584f24cd840be868e64fbc2050d0c771d95fa212"
+version = "7.5.0"
+source = "git+https://github.com/S2outh/chell-sys.git#0f47cc989b17ba109256b5f7586bf47ea2064a8e"
 dependencies = [
  "chell-macros",
  "erased-serde",
@@ -136,8 +136,8 @@ dependencies = [
 
 [[package]]
 name = "chell-macros"
-version = "7.0.1"
-source = "git+https://github.com/S2outh/chell-sys.git#584f24cd840be868e64fbc2050d0c771d95fa212"
+version = "7.5.0"
+source = "git+https://github.com/S2outh/chell-sys.git#0f47cc989b17ba109256b5f7586bf47ea2064a8e"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -1271,7 +1271,7 @@ dependencies = [
 [[package]]
 name = "south-common"
 version = "4.0.0"
-source = "git+https://github.com/S2outh/south-common.git#16457da799d2ab567b80dfa37d341559c4ae544d"
+source = "git+https://github.com/S2outh/south-common.git#f9ce9f15ccaada6a9089cd03e3355ddee56ad36f"
 dependencies = [
  "bitflags 2.13.1",
  "chell",
@@ -1402,9 +1402,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.54"
+version = "0.3.55"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e1d5e639ff6bab73cb6885cc7e7b1de96c3f32c68ec55f3952614bec1092244"
+checksum = "cdb87b95ec50ddfa440816d227a17b2ccbdda963a316a727fda0fc4334f7d134"
 dependencies = [
  "deranged",
  "num-conv",
